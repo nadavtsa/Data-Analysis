@@ -6,11 +6,17 @@ import java.util.*;
 
 public class Utils {
 
+    public static final int numOfMovies = 3883;
+    public static final int numOfUsers = 6040;
 
-    public static HashMap<Integer, User> parseAndCreateUsers() {
+    public static HashMap<Integer, User> users;
+    public static HashMap<Integer, Movie> movies;
+
+
+    public static void parseAndCreateUsers() {
         HashMap<Integer, User> ret = new HashMap<Integer, User>();
         try {
-            String path = new File(".").getCanonicalPath() + "/users.dat";
+            String path = new File(".").getAbsolutePath() + "/src/users.dat";
             FileReader fr = new FileReader(path);
             BufferedReader br = new BufferedReader(fr);
             String nextLine = "";
@@ -24,13 +30,13 @@ public class Utils {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return ret;
+        users = ret;
     }
 
-    public static HashMap<Integer, Movie> parseAndCreateMovies() {
-        String path = "movies.dat";
+    public static void parseAndCreateMovies() {
         HashMap<Integer, Movie> ret = new HashMap<Integer, Movie>();
         try {
+            String path = new File(".").getAbsolutePath() + "/src/movies.dat";
             FileReader fr = new FileReader(path);
             BufferedReader br = new BufferedReader(fr);
             String nextLine = "";
@@ -44,14 +50,14 @@ public class Utils {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return ret;
+        movies = ret;
     }
 
 
     public static Vector<Rating> parseAndCreateRatings() {
-        String path = "/ratings.dat";
         Vector<Rating> ret = new Vector<Rating>();
         try {
+            String path = new File(".").getAbsolutePath() + "/src/ratings.dat";
             FileReader fr = new FileReader(path);
             BufferedReader br = new BufferedReader(fr);
             String nextLine = "";
@@ -71,9 +77,9 @@ public class Utils {
     // This function parse the ratings.dat file and returns a HashMap
     // where each key is an Id of a user and each value is a Vector of all the user's ratings
     public static HashMap<Integer, Vector<Pair<Integer, Integer>>> parseRatings() {
-        String path = "/home/nadav/Desktop/mini-project/src/ml-1m/ratings.dat";
         HashMap<Integer, Vector<Pair<Integer, Integer>>> ret = new HashMap<>();
         try {
+            String path = new File(".").getAbsolutePath() + "/src/ratings.dat";
             BufferedReader br = new BufferedReader(new FileReader(path));
             String nextLine = "";
             while ((nextLine = br.readLine()) != null) {
@@ -102,13 +108,12 @@ public class Utils {
         }
     }
 
-    private static double calculatePmFormula(double k, int movieId1, int movieId2,
-                                             Collection<User> users, boolean isCorrelation) {
+    private static double calculatePmFormula(double k, int movieId1, int movieId2, boolean isCorrelation) {
         double numOfUsers = users.size();
         double multiplier = 2.0 / (numOfUsers + 1.0);
         double pm = multiplier * (1.0 / k);
         double sum = 0.0;
-        for(User user: users) {
+        for(User user: users.values()) {
             HashMap<Integer, Double> userRatings = user.getRatings();
             if (movieId2 == -1 && userRatings.containsKey(movieId1)) {
                 sum = sum + (1.0 / (double)user.getNumOfRatings());
@@ -127,49 +132,48 @@ public class Utils {
         return pm + (multiplier * sum);
     }
 
-    public static void calculatePms(Collection<User> users, Collection<Movie> movies) {
+    public static void calculatePms() {
         // calculate pm's
-        for(Movie movie : movies) {
-            movie.setPM(calculatePmFormula(movies.size(), movie.getId(), -1, users, false));
+        for(Movie movie : movies.values()) {
+            movie.setPM(calculatePmFormula(movies.size(), movie.getId(), -1, false));
         }
     }
 
-    public static double calculateCorrelation(int movieId1, int movieId2, Collection<User> users,
-                                               int numOfMovies) {
-        return calculatePmFormula(numOfMovies, movieId1, movieId2,
-                users, true) -
-                calculatePmFormula(numOfMovies, movieId1, movieId2,
-                        users, false);
+    public static double calculateCorrelation(int movieId1, int movieId2) {
+        return calculatePmFormula(numOfMovies - 1, movieId1, movieId2, true) -
+                calculatePmFormula(numOfMovies, movieId1, movieId2, false);
     }
 
-    public boolean isPositivelyCorrelated(Movie movie1, Movie movie2, int numOfMovies,
-                                          Collection<User> users) {
+    public static boolean isPositivelyCorrelated(Movie movie1, Movie movie2) {
         double independentMovies = movie1.getPm() * movie2.getPm();
-        double correlation = calculateCorrelation(movie1.getId(), movie2.getId(), users, numOfMovies);
+        double correlation = calculateCorrelation(movie1.getId(), movie2.getId());
         if(independentMovies <= correlation) {
             return true;
         }
         return false;
     }
 
-//    public double clusterCost(Cluster cluster, Collection<User> users) {
-//        for(HashSet<Movie> subCluster : cluster) {
-//
-//        }
-//    }
-//
-//    private double subClusterCost(HashSet<Movie> subCluster,Collection<User> users) {
-//        double ret = 0.0;
-//        double size = subCluster.size();
-//        double multiplier = 1.0 / (size - 1.0);
-//        for(Movie movie1 : subCluster) {
-//            for(Movie movie2 : subCluster) {
-//                if(!movie1.equals(movie2)) {
-//                    double log_base_2 = Math.log(1.0 / calculateCorrelation(movie1.getId(),
-//                            movie2.getId(), users));
-//                    ret = ret + multiplier * (Math.log(1.0 / calculateCorrelation))
-//                }
-//            }
-//        }
-//    }
+    public static double clusterCost(Cluster cluster) {
+        double ret = 0.0;
+        for(HashSet<Movie> subCluster : cluster.getCluster()) {
+            ret = ret + subClusterCost(subCluster);
+        }
+        return ret;
+    }
+
+    public static double subClusterCost(HashSet<Movie> subCluster) {
+        double ret = 0.0;
+        double size = subCluster.size();
+        double multiplier = 1.0 / (size - 1.0);
+        for(Movie movie1 : subCluster) {
+            for(Movie movie2 : subCluster) {
+                if(!movie1.equals(movie2)) {
+                    double log_base_2 = Math.log(1.0 / calculateCorrelation(movie1.getId(),
+                            movie2.getId())) / Math.log(2.0);
+                    ret = ret + multiplier * log_base_2;
+                }
+            }
+        }
+        return ret;
+    }
 }
