@@ -25,12 +25,7 @@ public class Main {
            sum = sum + movie.getPm();
        }
 
-        System.out.println(sum);
-
-       
-
+        System.out.println(users.size());
+        System.out.println(movies.size());
     }
-
-
-
 }

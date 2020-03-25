@@ -1,17 +1,16 @@
 import javax.print.DocFlavor;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Vector;
+import java.util.*;
 
 public class Utils {
 
+
     public static HashMap<Integer, User> parseAndCreateUsers() {
-        String path = "/home/nadav/Desktop/mini-project/src/ml-1m/users.dat";
         HashMap<Integer, User> ret = new HashMap<Integer, User>();
         try {
+            String path = new File(".").getCanonicalPath() + "/users.dat";
             FileReader fr = new FileReader(path);
             BufferedReader br = new BufferedReader(fr);
             String nextLine = "";
@@ -29,7 +28,7 @@ public class Utils {
     }
 
     public static HashMap<Integer, Movie> parseAndCreateMovies() {
-        String path = "/home/nadav/Desktop/mini-project/src/ml-1m/movies.dat";
+        String path = "movies.dat";
         HashMap<Integer, Movie> ret = new HashMap<Integer, Movie>();
         try {
             FileReader fr = new FileReader(path);
@@ -50,7 +49,7 @@ public class Utils {
 
 
     public static Vector<Rating> parseAndCreateRatings() {
-        String path = "/home/nadav/Desktop/mini-project/src/ml-1m/ratings.dat";
+        String path = "/ratings.dat";
         Vector<Rating> ret = new Vector<Rating>();
         try {
             FileReader fr = new FileReader(path);
@@ -135,16 +134,42 @@ public class Utils {
         }
     }
 
+    public static double calculateCorrelation(int movieId1, int movieId2, Collection<User> users,
+                                               int numOfMovies) {
+        return calculatePmFormula(numOfMovies, movieId1, movieId2,
+                users, true) -
+                calculatePmFormula(numOfMovies, movieId1, movieId2,
+                        users, false);
+    }
+
     public boolean isPositivelyCorrelated(Movie movie1, Movie movie2, int numOfMovies,
                                           Collection<User> users) {
         double independentMovies = movie1.getPm() * movie2.getPm();
-        double correlation = calculatePmFormula(numOfMovies, movie1.getId(), movie2.getId(),
-                users, true) -
-                                     calculatePmFormula(numOfMovies, movie1.getId(), movie2.getId(),
-                                             users, false);
+        double correlation = calculateCorrelation(movie1.getId(), movie2.getId(), users, numOfMovies);
         if(independentMovies <= correlation) {
             return true;
         }
         return false;
     }
+
+//    public double clusterCost(Cluster cluster, Collection<User> users) {
+//        for(HashSet<Movie> subCluster : cluster) {
+//
+//        }
+//    }
+//
+//    private double subClusterCost(HashSet<Movie> subCluster,Collection<User> users) {
+//        double ret = 0.0;
+//        double size = subCluster.size();
+//        double multiplier = 1.0 / (size - 1.0);
+//        for(Movie movie1 : subCluster) {
+//            for(Movie movie2 : subCluster) {
+//                if(!movie1.equals(movie2)) {
+//                    double log_base_2 = Math.log(1.0 / calculateCorrelation(movie1.getId(),
+//                            movie2.getId(), users));
+//                    ret = ret + multiplier * (Math.log(1.0 / calculateCorrelation))
+//                }
+//            }
+//        }
+//    }
 }
